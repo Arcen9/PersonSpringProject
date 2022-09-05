@@ -4,15 +4,9 @@ import com.crudapp.models.Person;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
-import javax.xml.transform.Result;
-import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
-
-import static java.lang.Class.forName;
 
 @Component
 public class PersonDAO {
