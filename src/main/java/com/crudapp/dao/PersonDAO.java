@@ -2,10 +2,14 @@ package com.crudapp.dao;
 
 import com.crudapp.models.Person;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -27,7 +31,7 @@ public class PersonDAO {
     }
 
     public void addPerson(Person person){
-        jdbcTemplate.update("INSERT INTO Person VALUES(1, ?, ?, ?)", person.getName(), person.getAge(),
+        jdbcTemplate.update("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)", person.getName(), person.getAge(),
                 person.getEmail());
     }
 
@@ -38,5 +42,42 @@ public class PersonDAO {
     public void update(int id, Person updatedPerson){
         jdbcTemplate.update("UPDATE Person SET name=?, age=?, email=? WHERE id =?", updatedPerson.getName(),
                 updatedPerson.getAge(), updatedPerson.getEmail(), id);
+    }
+
+    public List<Person> create1000People(){
+        List<Person> people = new ArrayList<>();
+
+        for (int i = 0; i < 1000; i++) {
+            people.add(new Person("Name" + i, 30, "mail" + i + "gmail.com"));
+        }
+
+        return people;
+    }
+
+    public void batchAdd(){
+        List<Person> people = create1000People();
+
+        jdbcTemplate.batchUpdate("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)", new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setString(1, people.get(i).getName());
+                preparedStatement.setInt(2, people.get(i).getAge());
+                preparedStatement.setString(3, people.get(i).getEmail());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return people.size();
+            }
+        });
+    }
+
+    public void casualAdd(){
+        List<Person> people = create1000People();
+
+        for(Person person : people){
+            jdbcTemplate.update("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)",
+                    person.getName(), person.getAge(), person.getEmail());
+        }
     }
 }
