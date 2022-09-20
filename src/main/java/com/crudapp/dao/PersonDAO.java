@@ -1,83 +1,58 @@
 package com.crudapp.dao;
 
 import com.crudapp.models.Person;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class PersonDAO {
-    JdbcTemplate jdbcTemplate;
+    private final SessionFactory sessionFactory;
 
     @Autowired
-    public PersonDAO(JdbcTemplate jdbcTemplate){
-        this.jdbcTemplate = jdbcTemplate;
+    public PersonDAO(SessionFactory sessionFactory){
+        this.sessionFactory = sessionFactory;
     }
 
+    @Transactional(readOnly = true)
     public List<Person> index(){
-        return jdbcTemplate.query("SELECT * FROM Person", new BeanPropertyRowMapper<>(Person.class));
+        Session session = sessionFactory.getCurrentSession();
+
+        return session.createQuery("select p from Person p", Person.class).getResultList();
     }
 
+    @Transactional(readOnly = true)
     public Person show(int id){
-        return jdbcTemplate.query("SELECT * FROM Person WHERE id=?",
-                new Object[]{id}, new BeanPropertyRowMapper<>(Person.class)).stream().findAny().orElse(null);
+        Session session = sessionFactory.getCurrentSession();
+
+        return session.get(Person.class, id);
     }
 
+    @Transactional
     public void addPerson(Person person){
-        jdbcTemplate.update("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)", person.getName(), person.getAge(),
-                person.getEmail());
+        Session session = sessionFactory.getCurrentSession();
+
+        session.save(person);
     }
 
+    @Transactional
     public void deletePerson(int id){
-        jdbcTemplate.update("DELETE FROM Person WHERE id=?", id);
+        Session session = sessionFactory.getCurrentSession();
+
+        session.remove(session.get(Person.class, id));
     }
 
-    public void update(int id, Person updatedPerson){
-        jdbcTemplate.update("UPDATE Person SET name=?, age=?, email=? WHERE id =?", updatedPerson.getName(),
-                updatedPerson.getAge(), updatedPerson.getEmail(), id);
-    }
+    @Transactional
+    public void update(int id, Person updatedPerson) {
+        Session session = sessionFactory.getCurrentSession();
+        Person personToBeUpdated = session.get(Person.class, id);
 
-    public List<Person> create1000People(){
-        List<Person> people = new ArrayList<>();
-
-        for (int i = 0; i < 1000; i++) {
-            people.add(new Person("Name" + i, 30, "mail" + i + "gmail.com"));
-        }
-
-        return people;
-    }
-
-    public void batchAdd(){
-        List<Person> people = create1000People();
-
-        jdbcTemplate.batchUpdate("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)", new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                preparedStatement.setString(1, people.get(i).getName());
-                preparedStatement.setInt(2, people.get(i).getAge());
-                preparedStatement.setString(3, people.get(i).getEmail());
-            }
-
-            @Override
-            public int getBatchSize() {
-                return people.size();
-            }
-        });
-    }
-
-    public void casualAdd(){
-        List<Person> people = create1000People();
-
-        for(Person person : people){
-            jdbcTemplate.update("INSERT INTO Person(name, age, email) VALUES(?, ?, ?)",
-                    person.getName(), person.getAge(), person.getEmail());
-        }
+        personToBeUpdated.setName(updatedPerson.getName());
+        personToBeUpdated.setAge(updatedPerson.getAge());
+        personToBeUpdated.setEmail(updatedPerson.getEmail());
     }
 }
